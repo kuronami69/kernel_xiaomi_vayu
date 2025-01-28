@@ -14,6 +14,22 @@ jobs:
       run: |
         curl -LSs "https://raw.githubusercontent.com/kuronami69/MemKernel/main/kernel/setup.sh" | bash -s M
 
+    - name: Install cross-compiler for ARM
+      run: |
+        sudo apt-get update
+        if [[ "${{ inputs.arch }}" == "arm64" ]]; then
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          echo "Compiler version: $(gcc-aarch64-linux-gnu --version | head -n 1)"
+          echo "compiler_version=aarch64-linux-gnu" >> $GITHUB_ENV
+        elif [[ "${{ inputs.arch }}" == "arm32" ]]; then
+          sudo apt-get install -y gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
+          echo "Compiler version: $(gcc-arm-linux-gnueabi --version | head -n 1)"
+          echo "compiler_version=arm-linux-gnueabi" >> $GITHUB_ENV
+        else
+          echo "Unsupported architecture"
+          exit 1
+        fi
+
     - name: Android kernel build
       uses: lemniskett/android-kernel-actions@master
       id: build
@@ -21,8 +37,8 @@ jobs:
         NAME: Loganysl
       with:
         arch: arm64
-        compiler: gcc/12
-        defconfig: vayu_defconfig
+        compiler: ${{ env.compiler_version }}
+        defconfig: gki_defconfig
         image: Image.gz-dtb
 
     - name: Upload Kernel and Module
@@ -32,4 +48,3 @@ jobs:
         path: |
           ${{ steps.build.outputs.outfile }}
           ./out/drivers/memkernel/memkernel.ko
-          
